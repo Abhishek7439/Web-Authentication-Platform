@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: commander-auth
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: ./data/commander.db
+      - key: WEBAUTHN_RP_ID
+        value: commander-auth.onrender.com
+      - key: WEBAUTHN_ORIGIN
+        value: https://commander-auth.onrender.com
+      - key: WEBAUTHN_RP_NAME
+        value: Commander Auth
+      - key: STEP_UP_FRESHNESS_MINUTES
+        value: "5"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: MAGIC_LINK_SECRET
+        generateValue: true
+      - key: WEBHOOK_SIGNING_SECRET
+        generateValue: true

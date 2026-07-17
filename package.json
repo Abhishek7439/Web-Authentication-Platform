@@ -1,0 +1,44 @@
+{
+  "name": "commander-auth",
+  "version": "1.0.0",
+  "description": "Passwordless authentication platform with adaptive auth, step-up approvals, and quorum-based multi-party trust.",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"node server/index.js\" \"vite --port 5173\"",
+    "start": "node server/index.js",
+    "build": "vite build",
+    "demo": "npm run build && node server/index.js",
+    "preview": "npm run build && node server/index.js",
+    "test": "vitest run --reporter=verbose",
+    "seed": "node server/db/seed.js",
+    "reset-db": "node --input-type=module --eval \"import fs from 'fs'; const p = process.env.DB_PATH || './data/commander.db'; [p, p+'-wal', p+'-shm'].forEach(f => { try { fs.unlinkSync(f); } catch(e) {} }); console.log('DB cleared.');\" && node server/db/seed.js"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@simplewebauthn/server": "^11.0.0",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "geoip-lite": "^1.4.10",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "otpauth": "^9.3.6",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "socket.io-client": "^4.8.3",
+    "vite": "^6.0.0",
+    "vitest": "^2.1.0"
+  },
+  "allowScripts": {
+    "better-sqlite3@11.10.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.21.5": true
+  }
+}
