@@ -11,7 +11,7 @@
 
 > Built by team **404Found**
 
-[🌐 Live Demo](https://commander-auth.onrender.com) · [📖 Architecture](docs/ARCHITECTURE.md) · [🎬 Demo Script](docs/DEMO_SCRIPT.md)
+[🌐 Live Demo](https://commander-auth.onrender.com) · [📖 Architecture](docs/ARCHITECTURE.md)
 
 </div>
 
@@ -59,7 +59,6 @@
 - [Data Model](#-data-model)
 - [Project Structure](#-project-structure)
 - [Setup & Deployment](#-setup--deployment)
-- [Demo Setup (for Judging)](#-demo-setup-for-judging)
 - [Security Properties](#-security-properties)
 - [Test Results](#-test-results)
 
@@ -360,26 +359,7 @@ npm run reset-db    # Delete DB and re-seed (clean state for demos)
 npm test            # Run E2E tests (32 checks: auth, quorum, audit, signing)
 ```
 
-### Deployment
-This project deploys to Render via `render.yaml`. Push to the connected repo and Render auto-deploys. WebAuthn is configured for `commander-auth.onrender.com` — update `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` in Render's env vars if using a different domain.
 
----
-
-## 🎬 Demo Setup (for Judging)
-
-1. Run `npm run reset-db` for a clean state
-2. Start the server: `node server/index.js` (serves built SPA on port 3000)
-3. Open **three browser windows** for Alice, Bob, and Carol
-4. Follow [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) for the click-by-click walkthrough
-
-### Key Demo Beats
-1. **Persona toggle** — switch between Bank/Student/Startup on Dashboard
-2. **Unsigned vote rejected** — try approving a high-value transfer without passkey → `403`
-3. **Signed quorum** — Bob + Carol sign & approve → weighted tally crosses threshold in real time
-4. **Signature verification** — click 🔏 badge → modal shows public-key fingerprint
-5. **Tamper & recover** — Break Chain → Verify (red) → Undo → Verify (green)
-
----
 
 ## 🔐 Security Properties
 
