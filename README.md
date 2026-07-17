@@ -156,37 +156,9 @@ Risk Score = (newDeviceWeight × 30) + (geoDistanceWeight × 25)
 
 ---
 
-## 🏗️ System Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                         CLIENT (Vite SPA)                        │
-│   Persona Dashboard → Approval Queue → Audit Explorer → Signing  │
-└───────────────────────────┬────────────────────────────────────┘
-                            │  REST + Socket.IO (real-time tally/audit push)
-┌───────────────────────────▼────────────────────────────────────┐
-│                    EXPRESS.JS API SERVER                         │
-│                                                                    │
-│   Adaptive Auth Core                                              │
-│   ├── /auth/webauthn/*   (passkey register + assert)             │
-│   ├── /auth/totp/*       (RFC 6238 verify)                       │
-│   └── /auth/magic-link/* (recovery)                              │
-│                                                                    │
-│   Step-Up Approval Engine                                        │
-│   ├── /approvals          (create policy-gated request)          │
-│   ├── /approvals/:id/vote (signed / unsigned vote)                │
-│   └── /approvals/:id      (status + tally)                       │
-│                                                                    │
-│   Quorum Policy Engine — evaluates M-of-N + role weights          │
-│   Audit Service — appends + hash-chains every state change        │
-└───────────────────────────┬────────────────────────────────────┘
-                            │  better-sqlite3 (sync, single-file)
-┌───────────────────────────▼────────────────────────────────────┐
-│                     SQLITE DATA STORE                            │
-│   users · credentials · policies · approval_requests             │
-│   votes · audit_log · sessions                                   │
-└──────────────────────────────────────────────────────────────────┘
-```
+<div align="center">
+  <img src="screenshots/architecture.png" alt="System Architecture Diagram" width="100%"/>
+</div>
 
 Three architectural layers, top to bottom:
 
@@ -221,63 +193,9 @@ Firebase Auth doesn't support WebAuthn/FIDO2 natively, doesn't expose control ov
 
 ## 📊 Data Model
 
-```
-users
-  ├── id            TEXT PK
-  ├── email          TEXT UNIQUE
-  ├── name           TEXT
-  ├── role           TEXT   -- 'admin' | 'senior' | 'member'
-  ├── weight         INTEGER -- quorum vote weight
-  └── created_at     DATETIME
-
-credentials
-  ├── id             TEXT PK
-  ├── user_id        TEXT FK → users.id
-  ├── type           TEXT   -- 'webauthn' | 'totp'
-  ├── public_key     TEXT    -- WebAuthn public key (base64)
-  ├── totp_secret    TEXT    -- encrypted, TOTP only
-  └── registered_at  DATETIME
-
-policies
-  ├── id                 TEXT PK
-  ├── action_type        TEXT   -- e.g. 'high-value-transaction'
-  ├── threshold_weight   INTEGER -- quorum weight required
-  ├── mandatory_signing  BOOLEAN
-  └── freshness_window_s INTEGER  -- default 300
-
-approval_requests
-  ├── id              TEXT PK
-  ├── policy_id       TEXT FK → policies.id
-  ├── requested_by    TEXT FK → users.id
-  ├── idempotency_key TEXT UNIQUE
-  ├── status          TEXT   -- 'pending' | 'approved' | 'denied'
-  ├── tally_weight    INTEGER
-  └── created_at      DATETIME
-
-votes
-  ├── id               TEXT PK
-  ├── approval_id      TEXT FK → approval_requests.id
-  ├── voter_id         TEXT FK → users.id
-  ├── decision         TEXT   -- 'approve' | 'deny'
-  ├── signed           BOOLEAN
-  ├── webauthn_sig     TEXT    -- nullable, present when signed
-  └── voted_at         DATETIME
-
-audit_log
-  ├── id            TEXT PK
-  ├── event_type    TEXT   -- 'auth' | 'vote' | 'approval' | 'admin'
-  ├── payload       TEXT    -- JSON snapshot of the event
-  ├── prev_hash     TEXT    -- hash of previous entry
-  ├── hash          TEXT    -- SHA-256(prev_hash + payload)
-  └── created_at    DATETIME
-
-sessions
-  ├── id            TEXT PK
-  ├── user_id       TEXT FK → users.id
-  ├── risk_score    INTEGER
-  ├── auth_method   TEXT
-  └── expires_at    DATETIME
-```
+<div align="center">
+  <img src="screenshots/data-model.png" alt="Data Model Diagram" width="100%"/>
+</div>
 
 ---
 
