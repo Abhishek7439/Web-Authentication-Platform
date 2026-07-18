@@ -86,7 +86,6 @@ graph TD
             MagicLink["Magic Link"]
             StepUp["Step-Up Freshness Enforcement"]
             RiskEngine["Risk Engine (GeoIP + Device Fingerprint)"]
-            AuthLayer --> RiskEngine
         end
 
         subgraph ApprovalEngine["Approval Engine"]
