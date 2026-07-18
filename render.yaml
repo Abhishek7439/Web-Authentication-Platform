@@ -11,9 +11,9 @@ services:
       - key: DB_PATH
         value: ./data/commander.db
       - key: WEBAUTHN_RP_ID
-        value: commander-auth.onrender.com
+        value: commander-auth-404found.onrender.com
       - key: WEBAUTHN_ORIGIN
-        value: https://commander-auth.onrender.com
+        value: https://commander-auth-404found.onrender.com
       - key: WEBAUTHN_RP_NAME
         value: Commander Auth
       - key: STEP_UP_FRESHNESS_MINUTES
