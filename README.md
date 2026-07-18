@@ -4,7 +4,7 @@ An adaptive authorization core that treats authentication and approvals as the s
 
 ## Live Demo
 
-**[🌐 View Live Deployment](https://commander-auth.onrender.com)**
+<!-- TODO: confirm live Render URL before submission -->
 
 ### Demo Accounts
 
