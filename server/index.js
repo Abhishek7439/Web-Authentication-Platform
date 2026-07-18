@@ -82,6 +82,17 @@ app.get('*', (req, res) => {
 // ── Socket.IO Real-Time ─────────────────────────
 initializeRealtime(httpServer);
 
+// ── Global Error Handlers (For Render Diagnostics) ────
+process.on('uncaughtException', (err) => {
+  console.error('[server] FATAL: Uncaught Exception:', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[server] FATAL: Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
 // ── Start Server ────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {

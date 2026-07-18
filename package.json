@@ -14,6 +14,9 @@
     "seed": "node server/db/seed.js",
     "reset-db": "node --input-type=module --eval \"import fs from 'fs'; const p = process.env.DB_PATH || './data/commander.db'; [p, p+'-wal', p+'-shm'].forEach(f => { try { fs.unlinkSync(f); } catch(e) {} }); console.log('DB cleared.');\" && node server/db/seed.js"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^11.0.0",

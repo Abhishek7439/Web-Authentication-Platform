@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: commander-auth
+    name: commander-auth-404found
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --build-from-source=false && npm run build
     startCommand: node server/index.js
     envVars:
       - key: NODE_ENV
