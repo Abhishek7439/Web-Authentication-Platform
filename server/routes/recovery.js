@@ -38,7 +38,7 @@ router.post('/self-serve', async (req, res) => {
     db.prepare("UPDATE users SET recovery_status = 'pending' WHERE id = ?").run(user.id);
 
     // Generate magic link for verification
-    const origin = process.env.WEBAUTHN_ORIGIN || 'http://localhost:5173';
+    const origin = process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000';
     const { token, link } = generateMagicLink(user.id, origin);
 
     // Set 48-hour elevated risk window after recovery

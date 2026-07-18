@@ -29,7 +29,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(cors({
-  origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:5173',
+  origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000',
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));
@@ -76,7 +76,7 @@ app.get('*', (req, res) => {
   if (isDev) {
     return res.sendFile(path.join(clientPath, 'index.html'));
   }
-  res.status(503).send('Run "npm run build" first, or use Vite dev server at http://localhost:5173');
+  res.status(503).send('Run "npm run build" first, or use Vite dev server at http://localhost:3000');
 });
 
 // ── Socket.IO Real-Time ─────────────────────────
@@ -87,7 +87,7 @@ const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`[server] Commander Auth running on port ${PORT}`);
   console.log(`[server] WebAuthn RP: ${process.env.WEBAUTHN_RP_ID || 'localhost'}`);
-  console.log(`[server] Origin: ${process.env.WEBAUTHN_ORIGIN || 'http://localhost:5173'}`);
+  console.log(`[server] Origin: ${process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000'}`);
 });
 
 // ── Graceful Shutdown ───────────────────────────────

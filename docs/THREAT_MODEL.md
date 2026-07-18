@@ -96,6 +96,13 @@ This document describes the attack surface, explicit trust boundaries, threat sc
 
 ---
 
+### T9: MFA / Approval Fatigue Attack
+**Attack**: Attacker floods an approver with repeated approval notifications, hoping they reflexively "tap yes in a hurry" without reviewing the request.
+
+**Mitigation**: Number-matching challenge — before any vote registers, the approver must read a randomly generated 2-digit number and type it to confirm. This forces conscious engagement with every approval decision, directly countering push-approval fatigue where users reflexively tap "approve" without reading. The challenge is generated client-side per-vote and cannot be bypassed by automation.
+
+---
+
 ## Known Weaknesses (Acknowledged)
 
 | Weakness | Why Accepted | Production Path |
@@ -119,3 +126,9 @@ This document describes the attack surface, explicit trust boundaries, threat sc
 4. **Audit chain verified by the server, surfaced to the client** — The verifier runs server-side (the client can't fake it), but the result is surfaced in the UI so judges/reviewers can see it working.
 
 5. **Role weights are policy-level, not account-level** — The same user can have different voting weight depending on which policy governs the request. Policies are inspectable via `GET /api/policies`.
+
+6. **Graceful degradation is demonstrable** — A built-in "degraded network" toggle simulates WebAuthn timeouts, forcing the login flow into TOTP fallback with a visible banner explaining what's happening. Judges can watch the resilience claim happen live, not just read about it.
+
+7. **Per-policy step-up configuration** — Each approval policy defines its own step-up freshness window and whether TOTP satisfies step-up (e.g., `academic-submission` allows 15-min + TOTP, while `high-value-transaction` requires 5-min + WebAuthn only). Persona leniency is enforced server-side, not via client headers.
+
+8. **Magic link scoped to recovery only** — The weakest authentication factor (email-delivered token) is deliberately not offered as a convenience login option, minimizing reliance on vulnerable communication channels. It exists solely as a narrow recovery path.

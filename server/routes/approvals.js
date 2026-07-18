@@ -134,6 +134,31 @@ router.post('/:id/vote', requireAuth, idempotency, async (req, res) => {
       return res.status(404).json({ error: 'not_found', message: 'Approval request not found.' });
     }
 
+    // Dynamic Step-Up Freshness Check based on policy
+    const session = req.session;
+    const freshnessMinutes = request.step_up_freshness_minutes || 5;
+
+    if (!session.last_verified_at) {
+      return res.status(403).json({
+        error: 'step_up_required',
+        message: 'Re-authentication required. Please verify your identity.',
+        lastVerifiedMinutesAgo: null,
+        requiredFreshnessMinutes: freshnessMinutes,
+      });
+    }
+
+    const lastVerified = new Date(session.last_verified_at);
+    const elapsedMinutes = Math.floor((Date.now() - lastVerified.getTime()) / (60 * 1000));
+
+    if (elapsedMinutes > freshnessMinutes) {
+      return res.status(403).json({
+        error: 'step_up_required',
+        message: 'Re-authentication required. Please verify your identity.',
+        lastVerifiedMinutesAgo: elapsedMinutes,
+        requiredFreshnessMinutes: freshnessMinutes,
+      });
+    }
+
     let signatureToStore = 'unsigned';
     
     // Mandatory signing for sensitive policies

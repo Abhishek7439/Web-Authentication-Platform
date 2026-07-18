@@ -32,6 +32,13 @@ async function fullTest() {
       body: JSON.stringify({ email })
     }).then(r => r.json());
     const session = await fetch(`${BASE}/api/auth/magic-link/verify/${send.token}`).then(r => r.json());
+    
+    // Hack the database directly to set last_verified_at = NOW for all these test sessions
+    // so they pass the dynamic step-up freshness checks that are now strictly enforced.
+    const { default: Database } = await import('better-sqlite3');
+    const db = new Database('./data/commander.db');
+    db.prepare("UPDATE sessions SET last_verified_at = ?").run(new Date().toISOString());
+    
     return session;
   }
   const alice = await login('alice@demo.local');

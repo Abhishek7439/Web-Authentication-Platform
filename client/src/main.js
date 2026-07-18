@@ -175,5 +175,76 @@ export function attachNavHandlers() {
 // Listen for hash changes
 window.addEventListener('hashchange', render);
 
-// Initial render
-render();
+// Canvas grid — hover trail, exact visual match, no DOM-node cost
+function initGridBackground() {
+  const canvas = document.getElementById('grid-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const CELL = 54; // 50px cell + 4px gap, matches reference spacing
+  let cols, rows;
+  let hoverMap = new Map(); // "col,row" -> timestamp last hovered
+  let mouseX = -1, mouseY = -1;
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols = Math.ceil(canvas.width / CELL);
+    rows = Math.ceil(canvas.height / CELL);
+  }
+
+  function lerpColor(t) {
+    // t: 0 = fully green, 1 = fully dark
+    const from = [0, 247, 0];
+    const to = [31, 31, 31];
+    const r = Math.round(from[0] + (to[0] - from[0]) * t);
+    const g = Math.round(from[1] + (to[1] - from[1]) * t);
+    const b = Math.round(from[2] + (to[2] - from[2]) * t);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const now = performance.now();
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const key = `${c},${r}`;
+        const x = c * CELL, y = r * CELL;
+        let color = '#1f1f1f';
+
+        // check if currently hovered
+        const isHovering = mouseX >= x && mouseX < x + 50 && mouseY >= y && mouseY < y + 50;
+        if (isHovering) {
+          hoverMap.set(key, now);
+          color = '#00f700';
+        } else if (hoverMap.has(key)) {
+          const elapsed = now - hoverMap.get(key);
+          if (elapsed < 400) {
+            color = lerpColor(elapsed / 400);
+          } else {
+            hoverMap.delete(key);
+          }
+        }
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x, y, 50, 50);
+      }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  window.addEventListener('mousemove', (e) => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  });
+
+  resize();
+  draw();
+}
+
+// Global initialization
+document.addEventListener('DOMContentLoaded', () => {
+  initGridBackground();
+  render();
+});

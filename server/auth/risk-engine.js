@@ -97,7 +97,7 @@ function getRecommendedFactors(level, currentMethod) {
  */
 export function getPreviousSessions(db, userId, limit = 10) {
   return db.prepare(`
-    SELECT device_fingerprint, ip_address, risk_profile, created_at
+    SELECT device_fingerprint, ip_address, risk_level, created_at
     FROM sessions
     WHERE user_id = ? AND id != (SELECT id FROM sessions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1)
     ORDER BY created_at DESC

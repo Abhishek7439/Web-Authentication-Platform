@@ -38,8 +38,8 @@ export function seedDatabase() {
   `);
 
   const insertPolicy = db.prepare(`
-    INSERT INTO approval_policies (id, name, quorum_threshold, role_weights, expiry_minutes, fallback_config, escalation_policy)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO approval_policies (id, name, quorum_threshold, role_weights, expiry_minutes, step_up_freshness_minutes, totp_satisfies_step_up, fallback_config, escalation_policy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertAuditLog = db.prepare(`
@@ -91,6 +91,8 @@ export function seedDatabase() {
         quorum_threshold: 3,
         role_weights: JSON.stringify({ admin: 3, senior: 2, member: 1 }),
         expiry_minutes: 30,
+        step_up_freshness_minutes: 5,
+        totp_satisfies_step_up: 0,
         fallback_config: JSON.stringify({ fallback_approvers: [] }),
         escalation_policy: 'lower_threshold',
       },
@@ -100,6 +102,8 @@ export function seedDatabase() {
         quorum_threshold: 2,
         role_weights: JSON.stringify({ admin: 2, senior: 2, member: 1 }),
         expiry_minutes: 60,
+        step_up_freshness_minutes: 5,
+        totp_satisfies_step_up: 0,
         fallback_config: JSON.stringify({ fallback_approvers: [] }),
         escalation_policy: 'delegate',
       },
@@ -109,8 +113,21 @@ export function seedDatabase() {
         quorum_threshold: 2,
         role_weights: JSON.stringify({ admin: 2, senior: 1, member: 0 }),
         expiry_minutes: 120,
+        step_up_freshness_minutes: 5,
+        totp_satisfies_step_up: 0,
         fallback_config: JSON.stringify({ fallback_approvers: [] }),
         escalation_policy: 'admin_override',
+      },
+      {
+        id: uuidv4(),
+        name: 'academic-submission',
+        quorum_threshold: 2,
+        role_weights: JSON.stringify({ admin: 2, senior: 1, member: 1 }),
+        expiry_minutes: 60,
+        step_up_freshness_minutes: 15,
+        totp_satisfies_step_up: 1,
+        fallback_config: JSON.stringify({ fallback_approvers: [] }),
+        escalation_policy: 'delegate',
       },
     ];
 
@@ -118,6 +135,7 @@ export function seedDatabase() {
       insertPolicy.run(
         policy.id, policy.name, policy.quorum_threshold,
         policy.role_weights, policy.expiry_minutes,
+        policy.step_up_freshness_minutes, policy.totp_satisfies_step_up,
         policy.fallback_config, policy.escalation_policy
       );
     }
@@ -157,7 +175,7 @@ export function seedDatabase() {
   console.log('  carol@demo.local  (member)  - Junior approver (weight 1)');
   console.log('  dave@demo.local   (member)  - Junior approver (weight 1)');
   console.log('  admin@demo.local  (admin)   - Admin');
-  console.log('[seed] 3 approval policies created.');
+  console.log('[seed] 4 approval policies created (incl. academic-submission with 15-min step-up).');
   console.log('[seed] 4 audit log entries seeded.');
 
   // Show TOTP URIs if --show-qr flag is passed

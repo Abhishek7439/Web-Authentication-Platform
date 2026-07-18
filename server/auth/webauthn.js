@@ -15,7 +15,7 @@ function getRpConfig() {
   return {
     rpName: process.env.WEBAUTHN_RP_NAME || 'Commander Auth',
     rpID: process.env.WEBAUTHN_RP_ID || 'localhost',
-    origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:5173',
+    origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000',
   };
 }
 

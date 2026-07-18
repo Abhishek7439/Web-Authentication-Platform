@@ -11,9 +11,117 @@ import {
 import { createSessionToken, requireAuth } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rate-limiter.js';
 import { encrypt, decrypt, randomToken } from '../utils/crypto.js';
+import { assessRisk, getPreviousSessions } from '../auth/risk-engine.js';
 import * as OTPAuth from 'otpauth';
 
 const router = Router();
+
+// ──────────────────────────────────────────
+// Risk Assessment (Pre-Login)
+// ──────────────────────────────────────────
+
+/**
+ * POST /api/auth/risk-assess
+ * Evaluate risk before login method selection.
+ * Returns which auth factors are allowed given the user's risk context.
+ */
+router.post('/risk-assess', authLimiter, (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ error: 'validation', message: 'Email is required.' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+
+    // Don't leak user existence — return a generic low-risk response
+    if (!user) {
+      return res.json({
+        riskLevel: 'low',
+        score: 0,
+        requiredFactors: ['webauthn', 'totp'],
+        disabledFactors: [
+          { method: 'magic_link', reason: 'Recovery-only. Not available for standard login.' },
+        ],
+        reason: 'Standard login context',
+        hasPasskey: false,
+        hasTotp: false,
+      });
+    }
+
+    // Get previous sessions for risk comparison
+    const previousSessions = getPreviousSessions(db, user.id);
+
+    // Assess risk
+    const risk = assessRisk({
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] || '',
+      user,
+      authMethod: 'unknown',
+      previousSessions,
+    });
+
+    // Check what credentials the user has registered
+    const hasPasskey = !!db.prepare(
+      "SELECT 1 FROM credentials WHERE user_id = ? AND type = 'webauthn' AND revoked_at IS NULL"
+    ).get(user.id);
+    const hasTotp = !!db.prepare(
+      "SELECT 1 FROM credentials WHERE user_id = ? AND type = 'totp' AND revoked_at IS NULL"
+    ).get(user.id);
+
+    // Determine allowed factors based on risk level
+    const requiredFactors = [];
+    const disabledFactors = [];
+
+    // Magic link is ALWAYS disabled for login (recovery-only)
+    disabledFactors.push({
+      method: 'magic_link',
+      reason: 'Recovery-only. Not available for standard login.',
+    });
+
+    if (risk.level === 'high') {
+      // High risk: only WebAuthn allowed
+      requiredFactors.push('webauthn');
+      const reasons = [];
+      if (risk.factors.includes('new-device')) reasons.push('new device detected');
+      if (risk.factors.some(f => f.startsWith('new-country'))) reasons.push('new geographic location');
+      if (risk.factors.includes('recovery-active') || risk.factors.includes('within-recovery-elevation-window')) {
+        reasons.push('post-recovery elevated security');
+      }
+      const reasonStr = reasons.length > 0 ? reasons.join(', ') : 'elevated risk context';
+
+      disabledFactors.push({
+        method: 'totp',
+        reason: `${reasonStr.charAt(0).toUpperCase() + reasonStr.slice(1)} — passkey verification required.`,
+      });
+    } else {
+      // Low/medium risk: WebAuthn and TOTP both allowed
+      requiredFactors.push('webauthn');
+      if (hasTotp) requiredFactors.push('totp');
+    }
+
+    const reason = risk.level === 'low'
+      ? 'Known device, standard context'
+      : risk.level === 'medium'
+      ? 'Moderate risk factors detected'
+      : 'Elevated risk — restricted to highest-assurance factor';
+
+    res.json({
+      riskLevel: risk.level,
+      score: risk.score,
+      requiredFactors,
+      disabledFactors,
+      reason,
+      factors: risk.factors,
+      hasPasskey,
+      hasTotp,
+    });
+  } catch (err) {
+    console.error('[auth/risk-assess]', err);
+    res.status(500).json({ error: 'internal', message: 'Risk assessment failed.' });
+  }
+});
 
 // ──────────────────────────────────────────
 // User Registration

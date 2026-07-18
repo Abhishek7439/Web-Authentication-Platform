@@ -44,6 +44,8 @@ export function initializeSchema(db) {
       quorum_threshold INTEGER NOT NULL,
       role_weights TEXT NOT NULL DEFAULT '{}',
       expiry_minutes INTEGER NOT NULL DEFAULT 60,
+      step_up_freshness_minutes INTEGER NOT NULL DEFAULT 5,
+      totp_satisfies_step_up INTEGER NOT NULL DEFAULT 0,
       fallback_config TEXT NOT NULL DEFAULT '{}',
       escalation_policy TEXT NOT NULL DEFAULT 'delegate' CHECK(escalation_policy IN ('delegate', 'lower_threshold', 'admin_override')),
       created_at TEXT NOT NULL DEFAULT (datetime('now'))

@@ -12,7 +12,7 @@ let io;
 export function initializeRealtime(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:5173',
+      origin: process.env.WEBAUTHN_ORIGIN || 'http://localhost:3000',
       methods: ['GET', 'POST'],
       credentials: true,
     },

@@ -205,12 +205,78 @@ async function loadPendingApprovals() {
   }
 }
 
+/**
+ * Show a number-matching challenge before proceeding with the vote.
+ * Prevents MFA/approval fatigue attacks by requiring conscious engagement.
+ */
+function showNumberMatchChallenge(decision) {
+  return new Promise((resolve, reject) => {
+    const matchNumber = Math.floor(Math.random() * 90) + 10; // 10-99
+
+    const overlay = document.createElement('div');
+    overlay.className = 'number-match-overlay';
+    overlay.innerHTML = `
+      <div class="number-match-card">
+        <h3>Confirm Your ${decision === 'approve' ? 'Approval' : 'Denial'}</h3>
+        <p class="match-instruction">
+          To prevent accidental approvals, type the number shown below:
+        </p>
+        <div class="match-number">${matchNumber}</div>
+        <input type="text" id="match-input" class="form-input" placeholder="—" maxlength="2" autocomplete="off" />
+        <div class="number-match-actions">
+          <button class="btn btn-outline btn-sm" id="match-cancel">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="match-confirm">Confirm ${decision === 'approve' ? 'Approval' : 'Denial'}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#match-input');
+    input.focus();
+
+    const cleanup = () => {
+      if (document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+    };
+
+    overlay.querySelector('#match-cancel').addEventListener('click', () => {
+      cleanup();
+      reject(new Error('Vote cancelled by user.'));
+    });
+
+    overlay.querySelector('#match-confirm').addEventListener('click', () => {
+      const entered = input.value.trim();
+      if (entered === String(matchNumber)) {
+        cleanup();
+        resolve(true);
+      } else {
+        input.style.borderColor = 'var(--color-alert)';
+        input.value = '';
+        input.placeholder = 'Try again';
+        input.focus();
+      }
+    });
+
+    // Also allow Enter key to confirm
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        overlay.querySelector('#match-confirm').click();
+      }
+    });
+  });
+}
+
 async function handleVoteSubmit(btn, useSignature) {
   const requestId = btn.dataset.id;
   const decision = btn.dataset.decision;
   const originalText = btn.textContent;
 
   try {
+    // Number-matching anti-fatigue step
+    await showNumberMatchChallenge(decision);
+
     btn.disabled = true;
     btn.textContent = 'Voting...';
 
@@ -261,6 +327,10 @@ async function handleVoteSubmit(btn, useSignature) {
     btn.disabled = false;
     btn.textContent = originalText;
     
+    if (err.message === 'Vote cancelled by user.') {
+      return; // silently return on cancel
+    }
+
     if (err.message.includes('signature_required')) {
       alert("❌ Signature Required:\n\n" + err.message);
     } else {

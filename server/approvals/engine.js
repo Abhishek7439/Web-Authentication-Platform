@@ -221,7 +221,7 @@ export function getApprovalRequest(requestId) {
 
   const request = db.prepare(`
     SELECT ar.*, ap.name as policy_name, ap.quorum_threshold, ap.role_weights,
-           ap.expiry_minutes, ap.escalation_policy,
+           ap.expiry_minutes, ap.escalation_policy, ap.step_up_freshness_minutes,
            u.email as requester_email, u.display_name as requester_name
     FROM approval_requests ar
     JOIN approval_policies ap ON ar.policy_id = ap.id
@@ -260,6 +260,7 @@ export function getApprovalRequest(requestId) {
   return {
     id: request.id,
     policyName: request.policy_name,
+    step_up_freshness_minutes: request.step_up_freshness_minutes,
     actionType: request.action_type,
     actionHash: request.action_hash,
     status: request.status,

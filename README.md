@@ -7,7 +7,7 @@
 ![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57?style=for-the-badge&logo=sqlite)
 ![Status](https://img.shields.io/badge/Status-Live%20🟢-green?style=for-the-badge)
 
-**A zero-password authentication platform with cryptographically signed multi-party approvals, role-weighted quorum consensus, and a tamper-evident hash-chained audit trail.**
+**One adaptive authorization core — the same engine that decides who can log in also decides who can approve what — deployed across three real-world personas (bank customer, student, startup integrator), not three separate flows. Zero-password authentication with cryptographically signed multi-party approvals, role-weighted quorum consensus, and a tamper-evident hash-chained audit trail.**
 
 > Built by team **404Found**
 
@@ -70,6 +70,8 @@ Commander Auth is a hackathon platform built around one thesis: **authentication
 
 Instead of treating "login" and "approve this action" as separate features, Commander Auth runs both through one **Adaptive Auth Core → Step-Up Approval Engine → Quorum Policy Engine → Signed, Hash-Chained Audit Trail** pipeline. It ships with a three-persona demo (Bank Customer, Student, Startup Developer) pulled directly from the brief's own risk profiles, so the same engine can be shown solving three different threat models live.
 
+> **Design principle:** SMS/phone-based OTP is intentionally excluded — SIM-swapping and SS7 interception make phone-based factors unsuitable for a platform whose entire thesis is non-repudiation.
+
 ---
 
 ## 🚀 What Makes This Different
@@ -93,9 +95,10 @@ Most hackathon auth projects stop at passkeys. Commander Auth goes three layers 
 |---|---|
 | **WebAuthn / Passkeys** | Primary factor for supported devices, no password ever stored |
 | **TOTP (RFC 6238)** | Fallback factor for accounts without a registered passkey |
-| **Magic Link** | Recovery path when a passkey device is lost — recovery is first-class, not an afterthought |
-| **Risk-Based Step-Up** | New device + new geo-IP + weak factor → auth itself is scored and can trigger approval-like step-up |
-| **Step-Up Freshness Window** | 5-minute verification window for sensitive operations |
+| **Magic Link** | Recovery path only — deliberately not offered as a convenience login factor. Used solely when a passkey device is lost. |
+| **Risk-Adaptive Factor Selection** | Before login method selection, the system evaluates device fingerprint, geographic context, and recovery status, then restricts which factors are offered. High risk → WebAuthn only; low risk → WebAuthn or TOTP. |
+| **Per-Policy Step-Up Freshness** | Each approval policy defines its own step-up window and accepted factors (e.g., `academic-submission`: 15 min + TOTP; `high-value-transaction`: 5 min + WebAuthn only) |
+| **Number-Matching Anti-Fatigue** | Before any approval vote, a 2-digit number challenge forces conscious engagement — countering push-approval fatigue attacks |
 
 ### ✅ Approval & Quorum Engine
 | Feature | Description |
@@ -286,9 +289,11 @@ npm test            # Run E2E tests (32 checks: auth, quorum, audit, signing)
 | **Non-repudiation** | Votes on sensitive policies require WebAuthn assertion — cryptographic proof of identity |
 | **Tamper evidence** | Audit log entries are SHA-256 hash-chained; modifying any entry breaks the chain |
 | **Idempotency** | All write endpoints accept `Idempotency-Key` headers — safe for network retries |
-| **Risk scoring** | Offline geo-IP + device fingerprint + auth method → per-session risk level |
-| **Step-up freshness** | 5-minute verification window for sensitive operations |
-| **Graceful degradation** | Magic-link recovery ensures no hard dead-end when a passkey device is lost |
+| **Risk-adaptive login** | Pre-login risk assessment restricts available factors by context — high risk forces WebAuthn only |
+| **Per-policy step-up** | Each policy defines its own freshness window and accepted step-up factors, enforced server-side |
+| **MFA-fatigue resistance** | Number-matching challenge on every vote prevents reflexive "tap yes in a hurry" |
+| **Graceful degradation** | Degraded-network toggle demonstrates live fallback from WebAuthn to TOTP |
+| **No SMS by design** | Phone-based OTP intentionally excluded — SIM-swapping and SS7 make it unsuitable |
 
 See [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) for attack surface, tradeoffs, and mitigations, and [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for the full integrator-facing API spec.
 
