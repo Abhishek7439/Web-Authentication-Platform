@@ -44,6 +44,23 @@ export function renderRegisterPage() {
           </button>
         </div>
 
+        <!-- Step 3: TOTP registration -->
+        <div id="step-3" style="display: none;">
+          <div class="alert alert-info">
+            Scan this QR code with your Authenticator App (e.g. Google Authenticator).
+          </div>
+          <div id="totp-qr-container" style="text-align: center; margin: 20px 0;">
+            <img id="totp-qr-image" src="" alt="QR Code" style="border-radius: 8px; max-width: 200px;" />
+          </div>
+          <div class="form-group">
+            <label>Or enter this secret manually:</label>
+            <code id="totp-secret-text" style="display: block; padding: 10px; background: rgba(255,255,255,0.05); text-align: center; letter-spacing: 2px;"></code>
+          </div>
+          <button class="btn btn-primary btn-block mt-md" id="btn-finish-setup">
+            Done
+          </button>
+        </div>
+
         <div class="mt-lg text-center">
           <span class="text-muted">Already have an account? </span>
           <a href="#/login">Sign in</a>
@@ -81,8 +98,12 @@ function attachRegisterHandlers() {
     }
 
     try {
-      await post('/auth/register', { email, displayName });
+      const response = await post('/auth/register', { email, displayName });
       createdEmail = email;
+      
+      // Store token immediately to allow TOTP setup
+      setToken(response.token);
+      setCurrentUser(response.user);
 
       // Show step 2
       document.getElementById('step-1').style.display = 'none';
@@ -99,7 +120,7 @@ function attachRegisterHandlers() {
 
     try {
       const result = await registerCredential(createdEmail);
-      setToken(result.token);
+      setToken(result.token); // update with the fully verified token
       setCurrentUser(result.user);
       navigate('/dashboard');
     } catch (err) {
@@ -107,8 +128,23 @@ function attachRegisterHandlers() {
     }
   });
 
-  // Skip passkey (use TOTP/magic link later)
-  document.getElementById('btn-skip-passkey')?.addEventListener('click', () => {
-    navigate('/login');
+  // Skip passkey -> Show TOTP Setup
+  document.getElementById('btn-skip-passkey')?.addEventListener('click', async () => {
+    hideError();
+    try {
+      const result = await post('/auth/totp/setup');
+      document.getElementById('totp-qr-image').src = result.qrCode;
+      document.getElementById('totp-secret-text').textContent = result.secret;
+      
+      document.getElementById('step-2').style.display = 'none';
+      document.getElementById('step-3').style.display = 'block';
+    } catch (err) {
+      showError(err.message || 'Failed to generate TOTP setup.');
+    }
+  });
+
+  // Finish TOTP Setup -> Go to Dashboard
+  document.getElementById('btn-finish-setup')?.addEventListener('click', () => {
+    navigate('/dashboard');
   });
 }

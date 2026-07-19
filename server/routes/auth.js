@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import QRCode from 'qrcode';
 import { getDb } from '../db/index.js';
 import {
   getRegistrationOptions,
@@ -151,8 +152,20 @@ router.post('/register', authLimiter, (req, res) => {
       VALUES (?, ?, ?, 'member')
     `).run(userId, email, displayName);
 
+    const user = { id: userId, email, displayName, role: 'member' };
+    
+    // Create initial session for onboarding (TOTP/WebAuthn setup)
+    const sessionId = uuidv4();
+    db.prepare(`
+      INSERT INTO sessions (id, user_id, device_fingerprint, ip_address, risk_level, expires_at)
+      VALUES (?, ?, ?, ?, 'low', datetime('now', '+24 hours'))
+    `).run(sessionId, userId, req.headers['user-agent'] || '', req.ip);
+    
+    const token = createSessionToken({ id: userId, email, display_name: displayName, role: 'member' }, sessionId);
+
     res.status(201).json({
-      user: { id: userId, email, displayName, role: 'member' },
+      user,
+      token
     });
   } catch (err) {
     console.error('[auth/register]', err);
@@ -485,9 +498,12 @@ router.post('/totp/setup', requireAuth, async (req, res) => {
       VALUES (?, ?, 'totp', ?, 0)
     `).run(credId, req.user.id, credentialData);
 
+    const qrCode = await QRCode.toDataURL(totp.toString());
+
     res.json({
       uri: totp.toString(),
       secret: totp.secret.base32, // Shown once for manual entry
+      qrCode,
     });
   } catch (err) {
     console.error('[auth/totp/setup]', err);
