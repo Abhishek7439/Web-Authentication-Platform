@@ -81,9 +81,7 @@ function getEncryptionKey() {
   if (!keyHex) {
     throw new Error('ENCRYPTION_KEY environment variable is not set');
   }
-  const key = Buffer.from(keyHex, 'hex');
-  if (key.length !== 32) {
-    throw new Error('ENCRYPTION_KEY must be exactly 32 bytes (64 hex chars)');
-  }
-  return key;
+  // Render auto-generates base64/alphanumeric strings which fail strict hex checks.
+  // Hashing the string guarantees a secure 32-byte buffer regardless of input format.
+  return crypto.createHash('sha256').update(keyHex).digest();
 }
