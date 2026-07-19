@@ -11,7 +11,7 @@
 
 > Built by team **404Found**
 
-<!-- TODO: confirm live Render URL before submission -->
+
 [🌐 View Live Deployment](https://commander-auth-404found.onrender.com) · [📖 Architecture](docs/ARCHITECTURE.md)
 
 </div>
