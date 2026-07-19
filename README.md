@@ -1,72 +1,144 @@
-# Commander Auth
+# 🛡️ Commander Auth – Zero-Password Auth & Approval Platform
 
-An adaptive authorization core that treats authentication and approvals as the same underlying primitive. This system provides zero-password authentication, cryptographically signed multi-party approvals, role-weighted quorum consensus, and a tamper-evident audit trail.
+<div align="center">
 
-## Live Demo
+![Commander Auth Banner](https://img.shields.io/badge/Commander%20Auth-Zero%20Password-red?style=for-the-badge&logo=webauthn)
+![Node](https://img.shields.io/badge/Node.js-Express%20%7C%20Socket.IO-339933?style=for-the-badge&logo=node.js)
+![SQLite](https://img.shields.io/badge/SQLite-better--sqlite3-003B57?style=for-the-badge&logo=sqlite)
+![Status](https://img.shields.io/badge/Status-Live%20🟢-green?style=for-the-badge)
+
+**One adaptive authorization core — the same engine that decides who can log in also decides who can approve what — deployed across three real-world personas (bank customer, student, startup integrator), not three separate flows. Zero-password authentication with cryptographically signed multi-party approvals, role-weighted quorum consensus, and a tamper-evident hash-chained audit trail.**
+
+> Built by team **404Found**
 
 <!-- TODO: confirm live Render URL before submission -->
+[🌐 View Live Deployment](https://commander-auth-404found.onrender.com) · [📖 Architecture](docs/ARCHITECTURE.md)
 
-### Demo Accounts
-
-The database is seeded with the following accounts for testing. All accounts use TOTP by default; use `npm run seed -- --show-qr` locally to register their TOTP URIs, or test using the pre-seeded passkey accounts.
-
-| Account | Email | Role | Weight | Passkey |
-|---|---|---|---|---|
-| Alice | alice@demo.local | member | 1 | — |
-| Bob | bob@demo.local | senior | 2 | ✅ Pre-registered |
-| Carol | carol@demo.local | member | 1 | ✅ Pre-registered |
-| Dave | dave@demo.local | member | 1 | — |
-| Admin | admin@demo.local | admin | 3 | — |
+</div>
 
 ---
 
-## Problem Statement Alignment
+## 📸 Screenshots
 
-This platform directly maps to the hackathon's core problem statement requirements:
-
-*   **Risk-adaptive login**: Implemented via a custom risk engine. Login attempts are scored based on device fingerprint, location, and recovery status. The UI restricts which factors are available—disabling TOTP and requiring WebAuthn during high-risk conditions.
-*   **MFA Fatigue Resistance**: To prevent "tap yes in a hurry" attacks, the system forces a number-matching challenge (a 2-digit confirmation) before any approval vote can be submitted.
-*   **Dispute-resolution / Non-repudiation**: Solved by enforcing mandatory WebAuthn-signed votes on sensitive policies, combined with a SHA-256 hash-chained audit log that makes historical tampering immediately evident.
-*   **Persona-driven variations without disjointed flows**: The platform utilizes a single, generalized step-up primitive deployed across three distinct policies (`high-value-transaction`, `production-deploy`, `academic-submission`). These policies enforce genuinely different step-up windows (e.g., 5 vs 15 minutes) and acceptable factors entirely on the server side.
-*   **SIM-swap and SS7 Risk**: Addressed by deliberate omission. SMS is excluded from the platform by design to avoid reliance on vulnerable telco networks.
-*   **Graceful degradation**: The login system allows falling back from WebAuthn to TOTP if offline or using an unsupported device (demonstrable via the UI's degraded-network toggle), assuming the risk score permits it.
-
----
-
-## Features & Screenshots
-
-### Persona Dashboard
-The system adapts to distinct user personas (Bank Customer, Student, Startup Developer). The risk score is evaluated dynamically on login.
-
-![Persona Dashboard](docs/screenshots/dashboard.png)
-
-### Approval Queue
-Requests are evaluated via an M-of-N role-weighted quorum system. The tally climbs as different roles vote (e.g., Admin=3, Senior=2, Member=1).
-
-![Approval Queue](docs/screenshots/approvals.png)
-
-### Verify Signature
-For sensitive policies, unsigned votes are rejected at the API level. Each vote requires a WebAuthn assertion tied to the approver's public key, verifiable on demand.
-
-![Verify Signature Modal](docs/screenshots/verify-signature.png)
-
-### Tamper-Evident Audit Chain
-Every event (auth, approval, policy change) is appended to a SHA-256 hash chain. Modifying any historical entry breaks the downstream chain.
-
-![Audit Chain (Valid)](docs/screenshots/audit-chain-valid.png)
-
-*The chain immediately turns red when tampered with, proving data integrity.*
-
-![Audit Chain (Tampered)](docs/screenshots/audit-chain-tampered.png)
-
-### Adaptive Login
-The login page assesses risk before presenting authentication options. Magic links are isolated solely for account recovery to protect the primary authentication flow.
-
-![Login Page](docs/screenshots/login.png)
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/dashboard.png" alt="Persona Dashboard" width="100%"/>
+      <br/><b>🖥️ Persona Dashboard</b>
+      <br/><sub>Bank / Student / Startup toggle, live risk score</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/approvals.png" alt="Approval Queue" width="100%"/>
+      <br/><b>✅ Approval Queue</b>
+      <br/><sub>Role-weighted quorum tally climbing in real time</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/verify-signature.png" alt="Signed Vote Modal" width="100%"/>
+      <br/><b>🔏 Signed Vote Verification</b>
+      <br/><sub>WebAuthn assertion + public-key fingerprint</sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/audit-chain-valid.png" alt="Audit Chain" width="100%"/>
+      <br/><b>🔗 Tamper-Evident Audit Chain</b>
+      <br/><sub>Immediate visual proof of data integrity</sub>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## Architecture Diagram
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Key Features](#-key-features)
+- [Security & Trust Engine](#-security--trust-engine)
+- [System Architecture](#-system-architecture)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Setup & Deployment](#-setup--deployment)
+- [Security Properties](#-security-properties)
+- [Data Model](#-data-model)
+
+---
+
+## 🌟 Overview
+
+Commander Auth is a hackathon platform built around one thesis: **authentication and approval are the same underlying primitive** — *is this specific event sufficiently authorized, given its risk, in a way that can be proven and cannot be credibly denied?*
+
+Instead of treating "login" and "approve this action" as separate features, Commander Auth runs both through one **Adaptive Auth Core → Step-Up Approval Engine → Quorum Policy Engine → Signed, Hash-Chained Audit Trail** pipeline.
+
+It directly maps to the hackathon's core problem statement requirements:
+- **Risk-adaptive login**: Evaluates device fingerprint, location, and recovery status to restrict factors dynamically.
+- **MFA Fatigue Resistance**: Forces a 2-digit number-matching challenge before any approval vote.
+- **Dispute-resolution / Non-repudiation**: Enforces mandatory WebAuthn-signed votes on sensitive policies, backed by a SHA-256 hash-chained audit log.
+- **SIM-swap Risk**: SMS is completely excluded by design.
+- **Graceful degradation**: Seamless fallback from WebAuthn to TOTP.
+
+---
+
+## ✨ Key Features
+
+### 🔑 Adaptive Auth Core
+| Feature | Description |
+|---------|-------------|
+| **WebAuthn / Passkeys** | Primary factor for supported devices, no password ever stored |
+| **TOTP (RFC 6238)** | Fallback factor for accounts without a registered passkey |
+| **Risk-Adaptive Factor Selection** | High risk forces WebAuthn only; low risk allows TOTP |
+| **Number-Matching Anti-Fatigue** | 2-digit confirmation challenges counter push-approval fatigue |
+| **Magic Link Recovery** | Isolated solely for account recovery when a passkey device is lost |
+
+### ✅ Approval & Quorum Engine
+| Feature | Description |
+|---------|-------------|
+| **Generic Policy Primitive** | Any action type can be gated behind a strictly enforced approval policy |
+| **N-of-M, Role-Weighted** | Quorum thresholds configurable per policy with varying role weights |
+| **Per-Policy Step-Up Freshness** | Policies define custom step-up windows (e.g., 5 min vs 15 min freshness) |
+| **Idempotency Keys** | All write endpoints are safe against network retries |
+
+### 🔗 Audit & Non-Repudiation
+| Feature | Description |
+|---------|-------------|
+| **SHA-256 Hash Chain** | Every audit event links to the previous event's hash |
+| **One-Click Tamper Demo** | Break any entry to watch the downstream chain instantly flag red |
+| **Signature Verification Modal** | Re-derive and mathematically compare a vote's public-key fingerprint |
+
+---
+
+## 🤖 Security & Trust Engine
+
+> The hardest requirement in the brief isn't login — it's proving, after the fact, that a specific person authorized a specific action in a way even they can't deny.
+
+### Components
+
+```
+🛡️ trust-engine/
+├── 🔑 Adaptive Auth Core
+│   ├── WebAuthn / passkey verification
+│   ├── TOTP fallback (RFC 6238)
+│   ├── Magic-link recovery flow
+│   └── Risk scorer (geo-IP + device fingerprint + auth method)
+│
+├── ✅ Step-Up Approval Engine
+│   ├── Generic approval primitive (any action type)
+│   ├── Idempotency-key deduplication
+│   └── Freshness window enforcement (5 min)
+│
+├── ⚖️ Quorum Policy Engine
+│   ├── M-of-N threshold evaluation
+│   ├── Role-weight aggregation (admin=3, senior=2, member=1)
+│   └── Mandatory-signing flag per policy
+│
+└── 🔗 Audit Chain
+    ├── SHA-256 hash-chained event log
+    ├── Chain verification (walk + compare)
+    └── Tamper injection + recovery (demo-only)
+```
+
+---
+
+## 🏗️ System Architecture
 
 The system operates across three tiers: a Vite SPA, an Express backend with an adaptive auth core and policy engine, and a SQLite persistence layer.
 
@@ -121,7 +193,103 @@ graph TD
 
 ---
 
-## Data Model
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Runtime** | Node.js (ES modules) |
+| **Server** | Express.js |
+| **Database** | **SQLite (better-sqlite3)** |
+| **Real-time** | Socket.IO |
+| **Frontend** | Vite + Vanilla JS |
+| **WebAuthn** | @simplewebauthn/server + browser |
+| **TOTP** | otpauth (RFC 6238) |
+| **Deployment**| Render |
+
+> **This project uses SQLite via better-sqlite3 as its sole data store.**
+> It provides full control over the auth pipeline, a single-file database that is trivial to inspect or reset for demos, and zero cloud dependency.
+
+---
+
+## 📁 Project Structure
+
+```
+404Found/
+├── server/
+│   ├── index.js               # Express entry point, serves built SPA
+│   ├── routes/
+│   │   ├── auth.js             # WebAuthn / TOTP / magic-link
+│   │   ├── approvals.js        # Approval + quorum endpoints
+│   │   └── audit.js            # Audit chain + verify/tamper
+│   ├── engine/
+│   │   ├── riskScorer.js       # Adaptive risk scoring
+│   │   ├── quorum.js           # M-of-N + role-weight evaluation
+│   │   └── hashChain.js        # SHA-256 chain build + verify
+│   └── db/
+│       ├── schema.sql
+│       └── seed.js             # Demo account + policy seeding
+│
+├── client/                     # Vite + Vanilla JS SPA
+│   ├── dashboard/               # Persona toggle, risk view
+│   ├── approvals/                # Queue, signed vote modal
+│   └── audit/                    # Chain explorer, tamper demo
+│
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── THREAT_MODEL.md
+│   ├── API_REFERENCE.md
+│   └── DEMO_SCRIPT.md
+│
+├── render.yaml
+└── package.json
+```
+
+---
+
+## 🚀 Setup & Deployment
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### 1. Clone & Install
+```bash
+git clone <repo-url>
+cd 404Found
+npm install
+```
+
+### 2. Configure & Run
+```bash
+cp .env.example .env
+npm run dev
+```
+This starts both the Express server (port 3000) and Vite dev server (port 5173).
+
+### Useful Commands
+```bash
+npm run dev         # Start dev servers (Express + Vite)
+npm run seed        # Seed demo data (runs automatically on startup)
+npm run reset-db    # Delete DB and re-seed (clean state for demos)
+npm test            # Run E2E tests (32 checks: auth, quorum, audit, signing)
+```
+
+---
+
+## 🔐 Security Properties
+
+| Property | Implementation |
+|-------|---------------|
+| **Non-repudiation** | Votes on sensitive policies require WebAuthn assertion — cryptographic proof of identity |
+| **Tamper evidence** | Audit log entries are SHA-256 hash-chained; modifying any entry breaks the chain |
+| **Idempotency** | All write endpoints accept `Idempotency-Key` headers — safe for network retries |
+| **Risk-adaptive login** | Pre-login risk assessment restricts available factors by context — high risk forces WebAuthn only |
+| **Per-policy step-up** | Each policy defines its own freshness window and accepted step-up factors, enforced server-side |
+| **No SMS by design** | Phone-based OTP intentionally excluded — SIM-swapping and SS7 make it unsuitable |
+
+---
+
+## 📊 Data Model
 
 The relational model includes configurations for per-policy step-up parameters, ensuring freshness windows and permitted factors are defined strictly in the database, not hardcoded.
 
@@ -185,53 +353,16 @@ erDiagram
 
 ---
 
-## Tech Stack
+## 📄 License
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js (ES modules) |
-| Server | Express.js |
-| **Database** | **SQLite (better-sqlite3)** |
-| Real-time | Socket.IO |
-| Frontend | Vite + Vanilla JS |
-| WebAuthn | @simplewebauthn/server + browser |
-| TOTP | otpauth (RFC 6238) |
-| Geo-IP | geoip-lite (bundled, offline) |
-| Deployment | Render (free tier) |
-
-> **This project uses SQLite via better-sqlite3 as its sole data store.**
-> SQLite provides full control over the auth pipeline, a single-file database that is trivial to inspect or reset for demos, and zero cloud dependency.
+MIT License — Free to use for educational, research, and non-commercial purposes.
 
 ---
 
-## Quick Start
+<div align="center">
 
-### Prerequisites
-- Node.js 18+
-- npm
+Built with 🔐 for a world with fewer passwords and better proof.
 
-### 1. Clone & Install
-```bash
-git clone <repo-url>
-cd 404Found
-npm install
-```
+**Commander Auth** — *Prove it happened. Prove who approved it. Prove it can't be denied.*
 
-### 2. Configure & Run
-```bash
-cp .env.example .env
-npm run dev
-```
-This starts both the Express server (port 3000) and Vite dev server (port 5173).
-
-### Useful Commands
-```bash
-npm run dev         # Start dev servers (Express + Vite)
-npm run seed        # Seed demo data (runs automatically on startup)
-npm run reset-db    # Delete DB and re-seed (clean state for demos)
-npm test            # Run E2E tests (32 checks: auth, quorum, audit, signing)
-```
-
-## License
-
-MIT License — Free to use for educational, research, and non-commercial purposes.
+</div>
